@@ -21,7 +21,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Framework :: Modal",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Topic :: System :: Distributed Computing",
@@ -37,6 +36,6 @@ Homepage = "https://github.com/ozzuke/modal-tf-gpu-builder"
 Issues = "https://github.com/ozzuke/modal-tf-gpu-builder/issues"
 
 [tool.setuptools.packages.find]
-where = ["."] # Look for packages in the current directory
-include = ["modal_tf_builder*"] # Include the main package
-exclude = ["examples*", "tests*"] # Exclude example/test directories
+where = ["."]
+include = ["modal_tf_builder*"]
+exclude = ["examples*", "tests*"]

@@ -1,8 +1,12 @@
 # Modal TensorFlow GPU Environment Builder (Python 3.11)
 
+[![PyPI version](https://img.shields.io/pypi/v/modal-tf-gpu-builder.svg)](https://pypi.org/project/modal-tf-gpu-builder/)
+[![PyPI license](https://img.shields.io/pypi/l/modal-tf-gpu-builder.svg)](https://github.com/ozzuke/modal-tf-gpu-builder/blob/main/LICENSE)
+[![Python versions](https://img.shields.io/pypi/pyversions/modal-tf-gpu-builder.svg)](https://pypi.org/project/modal-tf-gpu-builder/)
+
 **Author:** Osvald Nigola ([ozzuke](https://github.com/ozzuke))
 
-**Version:** 0.2.2
+**Version:** 0.2.2 (Latest on PyPI)
 
 ## Problem Solved
 
@@ -13,9 +17,9 @@ Setting up a reliable environment for running TensorFlow with GPU acceleration o
 *   Creates stable, reproducible **Python 3.11** TF+GPU environments on Modal using Micromamba.
 *   Based on a known working combination (TF 2.14, CUDA 11.8, Python 3.11).
 *   Easily add custom `apt`, `micromamba`, and `pip` packages to the base image.
-*   Includes optional verification tests to confirm GPU functionality and provide timing context.
+*   Includes optional verification tests (via CLI) to confirm GPU functionality and provide timing context.
 *   Provides both a Command Line Interface (CLI) for testing and a Python function for easy integration into your Modal scripts.
-*   Designed for straightforward setup and usage via `pip install`.
+*   **Installable via `pip`!**
 
 ## Default Environment
 
@@ -28,7 +32,7 @@ The base image created by this builder includes the following core components (i
 
 It also includes the latest compatible versions (at build time) of these common libraries:
 *   `cuda-nvcc` (CUDA compiler, version tied to cudatoolkit)
-*   `cudnn`
+*   `cudnn` (Version 8.6.x by default)
 *   `keras` (Usually managed by TensorFlow)
 *   `scipy`
 *   `pandas`
@@ -50,18 +54,14 @@ You can add more packages or override versions using the provided options (see U
 
 *   **Python 3.11:** You **MUST** have Python 3.11.x installed locally and use it in your environment. This is critical because Modal requires matching Python major.minor versions between your local machine and the remote container to avoid errors when transferring data.
 *   **pip:** Comes with Python 3.11.
-*   **Git:** For cloning the repository or installing directly.
 *   **Modal Account:** A configured Modal account (`modal token set ...`).
+*   *(Git is only required if installing for development)*
 
-## Installation / Setup
+## Installation
 
-Choose **one** of the following methods. Both require an active **Python 3.11** environment.
+Requires an active **Python 3.11** environment.
 
-**Method 1: Direct Install from GitHub (Recommended for Users)**
-
-This is the simplest way to use the builder in your projects.
-
-1.  **Create & Activate Python 3.11 Environment:**
+**1. Create & Activate Python 3.11 Environment (if you don't have one):**
     *   Using `venv`:
         ```bash
         # Make sure python3.11 points to your Python 3.11 installation
@@ -73,12 +73,14 @@ This is the simplest way to use the builder in your projects.
         conda create -n my_ai_project_env python=3.11 -y
         conda activate my_ai_project_env
         ```
-2.  **Install the Builder (includes dependencies `modal` and `tblib`):**
-    ```bash
-    pip install git+https://github.com/ozzuke/modal-tf-gpu-builder.git
-    ```
 
-**Method 2: Editable Install (Recommended for Development/Contribution)**
+**2. Install from PyPI (Recommended):**
+    ```bash
+    pip install modal-tf-gpu-builder
+    ```
+    *(This automatically installs dependencies like `modal` and `tblib`)*
+
+## Development Installation (Optional)
 
 Use this if you want to modify the builder's code.
 
@@ -102,7 +104,7 @@ Use this if you want to modify the builder's code.
 
 1.  **Activate your Python 3.11 environment** where you installed the builder.
 2.  Import and use the `setup_modal_tf_gpu` function in your Modal scripts.
-3. Run the script with Modal using `modal run my_tf_assignment.py`.
+3.  Run the script with Modal using `modal run your_script_name.py`.
 
 ```python
 # Example: my_tf_assignment.py
@@ -120,24 +122,26 @@ builder_config = {
     "app_name": "my-tf-assignment-app",
     "gpu_type": GPU_TYPE,
     # Add packages needed for YOUR assignment (beyond the defaults)
+    # Use the correct argument names: add_pip_packages, add_mamba_packages
     "add_pip_packages": ["wandb", "tensorflow_datasets"], # Example: Add experiment tracking and TFDS
     "add_mamba_packages": {"scikit-image": None} # Example: Add scikit-image
 }
 
 # --- Setup Modal App ---
-# This uses the builder to configure an app with a Python 3.11 TF+GPU image
+# This uses the builder to configure an app with a Python 3.11 TF+GPU image.
+# The builder automatically includes itself in the image definition.
 print(f"Configuring Modal App: {builder_config['app_name']}")
 setup_data = setup_modal_tf_gpu(**builder_config)
-app = setup_data["app"] # Get the configured app object
+app = setup_data["app"] # Get the configured app object directly
 
 # --- Define Your Modal Function(s) ---
 @app.function(gpu=GPU_TYPE, timeout=600)
 def run_assignment_task(data_url: str):
     import tensorflow as tf
     import pandas as pd # Already included by default
-    import wandb # Added via add_pip
-    import tensorflow_datasets as tfds # Added via add_pip
-    from skimage import io # Added via add_mamba
+    import wandb # Added via add_pip_packages
+    import tensorflow_datasets as tfds # Added via add_pip_packages
+    from skimage import io # Added via add_mamba_packages
 
     print(f"Running task with TF {tf.__version__} in Python {sys.version}")
     print(f"Wandb version: {wandb.__version__}")
@@ -213,12 +217,13 @@ print("Configuring Modal app for interactive use...")
 interactive_config = {
     "app_name": "interactive-tf-session",
     "gpu_type": "T4",
+    # Use correct argument name: add_pip_packages
     "add_pip_packages": ["ipywidgets"], # Add notebook specific things if needed
 }
 
 # Call the builder - this defines the image and app object
 setup_data = setup_modal_tf_gpu(**interactive_config)
-app = setup_data["app"]
+app = setup_data["app"] # Use the app object directly
 
 print(f"Modal App '{app.name}' configured with Python 3.11 TF+GPU image.")
 
@@ -275,7 +280,7 @@ def simple_gpu_task(size=1000):
     print("GPU task complete.")
     return {"time_taken": end - start, "output_shape": c.shape}
 
-# Cell 6: Run the GPU task (Corrected)
+# Cell 6: Run the GPU task
 print("Running simple GPU task within app.run()...")
 gpu_result = None # Define outside the block
 with modal.enable_output():

@@ -4,23 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modal_tf_gpu_builder"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="Osvald Nigola" },
 ]
 description = "Builds stable Python 3.11 TensorFlow GPU environments on modal.com using Micromamba."
 readme = "README.md"
-license = { file="LICENSE" }
+
+license = { text = "MIT" }
+
 requires-python = "==3.11.*"
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Framework :: Modal",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: System :: Distributed Computing",
 ]
+
 dependencies = [
     "modal",
     "tblib",
@@ -30,8 +36,7 @@ dependencies = [
 Homepage = "https://github.com/ozzuke/modal-tf-gpu-builder"
 Issues = "https://github.com/ozzuke/modal-tf-gpu-builder/issues"
 
-# Find the package code
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["modal_tf_builder*"]
-exclude = ["examples*", "tests*"]
+where = ["."] # Look for packages in the current directory
+include = ["modal_tf_builder*"] # Include the main package
+exclude = ["examples*", "tests*"] # Exclude example/test directories

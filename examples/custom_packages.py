@@ -1,17 +1,9 @@
 # examples/custom_packages.py
 import modal
 import os
-
-try:
-    from modal_tf_builder import setup_modal_tf_gpu
-except ImportError:
-    print("Error: Could not import setup_modal_tf_gpu.")
-    print("Ensure you are running this script from the root of the 'modal-tf-gpu-builder' repository,")
-    print("or that the 'modal_tf_builder' package is installed/accessible in your Python path.")
-    exit()
+from modal_tf_builder import setup_modal_tf_gpu
 
 # --- Configuration ---
-TARGET_PYTHON_VERSION = "3.11"
 GPU_TYPE = "T4"
 
 builder_config = {

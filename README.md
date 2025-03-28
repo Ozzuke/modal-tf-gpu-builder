@@ -1,136 +1,198 @@
-# Modal TensorFlow GPU Environment Builder
+# Modal TensorFlow GPU Environment Builder (Python 3.11)
 
-**Author:** Osvald Nigola
+**Author:** Osvald Nigola ([ozzuke](https://github.com/ozzuke))
+
+**Version:** 0.2.0
 
 ## Problem Solved
 
-Setting up a reliable and reproducible environment for running TensorFlow with GPU acceleration on Modal.com can be challenging due to complex dependencies between Python versions, CUDA, cuDNN, TensorFlow, NumPy, and system libraries. This tool automates the creation of a stable Modal Image and App, simplifying the process significantly.
+Setting up a reliable environment for running TensorFlow with GPU acceleration on Modal.io can be tricky due to complex dependencies. This tool automates the creation of a **stable Python 3.11** Modal Image and App, specifically tailored for university assignments or projects needing a functional TF+GPU setup quickly.
 
 ## Features
 
-*   Creates stable, reproducible TF+GPU environments on Modal using Micromamba.
+*   Creates stable, reproducible **Python 3.11** TF+GPU environments on Modal using Micromamba.
 *   Based on a known working combination (TF 2.14, CUDA 11.8, Python 3.11).
-*   Configurable Python version (though sticking to the default is recommended for stability).
 *   Easily add custom `apt`, `micromamba`, and `pip` packages to the base image.
-*   Allows overriding default package versions (use with caution).
-*   Includes optional verification tests to confirm GPU functionality after image setup.
-*   Provides both a Command Line Interface (CLI) for direct use and a Python function for integration into your Modal scripts.
-*   Performs basic local environment checks.
+*   Includes optional verification tests to confirm GPU functionality and provide timing context.
+*   Provides both a Command Line Interface (CLI) for testing and a Python function for easy integration into your Modal scripts.
+*   Designed for straightforward setup and usage via `pip install`.
 
-## Prerequisites
+## Default Environment
 
-*   **Python:** Python 3.10+ installed locally.
-*   **Modal Client:** `modal-client` installed locally (`pip install modal-client`).
-    *   *Crucially*, ensure your local Python **major.minor** version (e.g., 3.11) matches the Python version used for the Modal image (default is 3.11) to avoid serialization errors when passing complex objects between your local machine and Modal containers.
-*   **tblib:** `tblib` installed locally (`pip install tblib`). Recommended by Modal for improved stability with tracebacks.
+The base image created by this builder includes the following core components (installed via Micromamba):
+
+*   **Python:** 3.11.x
+*   **CUDA Toolkit:** 11.8.x (`cudatoolkit=11.8`)
+*   **TensorFlow (GPU):** 2.14.0 (`tensorflow-gpu=2.14.0`)
+*   **NumPy:** 1.26.4 (`numpy=1.26.4`)
+
+It also includes the latest compatible versions (at build time) of these common libraries:
+*   `cuda-nvcc` (CUDA compiler, version tied to cudatoolkit)
+*   `cudnn`
+*   `keras` (Usually managed by TensorFlow)
+*   `scipy`
+*   `pandas`
+*   `pyarrow`
+*   `matplotlib`
+*   `seaborn`
+*   `scikit-learn`
+*   `Pillow` (PIL fork for image processing)
+*   `tqdm` (Progress bars)
+*   `transformers` (Hugging Face)
+*   `datasets` (Hugging Face)
+
+System libraries installed via `apt-get`:
+*   `libquadmath0`, `libgomp1`, `libgfortran5` (Required by NumPy/SciPy)
+
+You can add more packages or override versions using the provided options (see Usage).
+
+## Prerequisites (Strict)
+
+*   **Python 3.11:** You **MUST** have Python 3.11.x installed locally and use it in your environment. This is critical because Modal requires matching Python major.minor versions between your local machine and the remote container to avoid errors when transferring data.
+*   **pip:** Comes with Python 3.11.
+*   **Git:** For cloning the repository or installing directly.
 *   **Modal Account:** A configured Modal account (`modal token set ...`).
-*   **(Optional) Conda/Micromamba:** Useful for managing your local Python environment.
 
 ## Installation / Setup
 
-This tool is designed to be used directly from its repository directory, not typically installed globally.
+Choose **one** of the following methods. Both require an active **Python 3.11** environment.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/Ozzuke/modal-tf-gpu-builder.git
-    cd modal-tf-gpu-builder
-    ```
-2.  **(Recommended) Create and activate a local virtual environment:**
+**Method 1: Direct Install from GitHub (Recommended for Users)**
+
+This is the simplest way to use the builder in your projects.
+
+1.  **Create & Activate Python 3.11 Environment:**
     *   Using `venv`:
         ```bash
-        python -m venv .venv
-        source .venv/bin/activate
+        # Make sure python3.11 points to your Python 3.11 installation
+        python3.11 -m venv my_ai_project_env
+        source my_ai_project_env/bin/activate # On Windows use my_ai_project_env\Scripts\activate
         ```
     *   Using `conda`:
         ```bash
-        conda create -n modal-builder python=3.11 # Match the default remote version
-        conda activate modal-builder
+        conda create -n my_ai_project_env python=3.11 -y
+        conda activate my_ai_project_env
         ```
-3.  **Install local dependencies:**
+2.  **Install Modal Runtime Dependencies:**
+    ```bash
+    pip install modal tblib
+    ```
+3.  **Install the Builder from GitHub:**
+    ```bash
+    pip install git+https://github.com/ozzuke/modal-tf-gpu-builder.git
+    ```
+
+**Method 2: Editable Install (Recommended for Development/Contribution)**
+
+Use this if you want to modify the builder's code.
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/ozzuke/modal-tf-gpu-builder.git
+    cd modal-tf-gpu-builder
+    ```
+2.  **Create & Activate Python 3.11 Environment (inside the repo dir):**
+    ```bash
+    python3.11 -m venv .venv
+    source .venv/bin/activate
+    # Or use conda create -n modal-builder-dev python=3.11 && conda activate modal-builder-dev
+    ```
+3.  **Install in Editable Mode:**
+    ```bash
+    pip install -e .
+    ```
+4.  **Install Modal Runtime Dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
 ## Usage
 
-### 1. Command Line Interface (CLI)
-
-Run the builder script directly from the terminal within the repository directory. This is useful for testing configurations or creating one-off apps.
-
-```bash
-# Test the default setup (builds image, runs tests with verbose output)
-python -m modal_tf_builder.builder --run-tests --verbose-tests
-
-# Create an app named 'my-tf-job' with additional packages, then test
-python -m modal_tf_builder.builder --app-name my-tf-job \
-    --add-pip "requests>=2.28" "pandas" \
-    --add-mamba "pytorch" \
-    --run-tests
-
-# Force a rebuild of the image layers
-python -m modal_tf_builder.builder --force-rebuild --run-tests
-
-# See all options
-python -m modal_tf_builder.builder --help
-```
-
-### 2. Python Interface (Recommended for Modal Apps)
-Import and use the `setup_modal_tf_gpu` function within your own Modal application scripts. Place your script either inside this repository directory or ensure the `modal-tf-gpu-builder` directory is in your Python path.
+1.  **Activate your Python 3.11 environment** where you installed the builder.
+2.  Import and use the `setup_modal_tf_gpu` function in your Modal scripts.
 
 ```python
-
-# my_training_job.py
+# Example: my_tf_assignment.py
 import modal
+import sys # Added to show Python version in container
 
-from modal_tf_builder import setup_modal_tf_gpu
+# Import the installed builder package
+from modal_tf_gpu_builder import setup_modal_tf_gpu
 
-# --- IMPORTANT ---
-# Ensure the python_version here matches your LOCAL Python major.minor version
-# if you plan to pass complex non-serializable objects.
-# Sticking to the default '3.11' is generally safest if your local env is also 3.11.
+# --- Configuration ---
+# Builder uses Python 3.11 by default
+GPU_TYPE = "T4" # Or "A10G", etc.
+
 builder_config = {
-    "app_name": "my-training-run",
-    "add_pip": ["wandb", "torchmetrics"], # Add project-specific dependencies
-    "add_mamba": {"pytorch": None}, # Add other frameworks if needed
-    "gpu_type": "T4" # Or "A10G", etc.
-    # "run_tests": False
+    "app_name": "my-tf-assignment-app",
+    "gpu_type": GPU_TYPE,
+    # Add packages needed for YOUR assignment (beyond the defaults)
+    "add_pip": ["wandb", "tensorflow_datasets"], # Example: Add experiment tracking and TFDS
+    "add_mamba": {"scikit-image": None} # Example: Add scikit-image
 }
 
+# --- Setup Modal App ---
+# This uses the builder to configure an app with a Python 3.11 TF+GPU image
+print(f"Configuring Modal App: {builder_config['app_name']}")
 setup_data = setup_modal_tf_gpu(**builder_config)
-app = setup_data["app"] # Get the configured Modal App object
+app = setup_data["app"] # Get the configured app object
 
-# Define your Modal functions using the configured 'app'
-@app.function(gpu=builder_config["gpu_type"]) # Might be good to match GPU type, "T4" by default
-def train_model(hyperparams):
+# --- Define Your Modal Function(s) ---
+@app.function(gpu=GPU_TYPE, timeout=600)
+def run_assignment_task(data_url: str):
     import tensorflow as tf
-    import pandas as pd
-    import wandb
-    print(f"Running training with TF {tf.__version__}")
-    # ... your model training code ...
-    # wandb.init(...)
-    # model.fit(...)
+    import pandas as pd # Already included by default
+    import wandb # Added via add_pip
+    import tensorflow_datasets as tfds # Added via add_pip
+    from skimage import io # Added via add_mamba
+
+    print(f"Running task with TF {tf.__version__} in Python {sys.version}")
+    print(f"Wandb version: {wandb.__version__}")
+    # ... download data using data_url ...
+    # ... load data with pandas ...
+    # ... process images with skimage ...
+    # ... load TFDS dataset ...
+    # ... build/train your TF model ...
+    # ... log metrics with wandb ...
+    # ... return results ...
     return {"status": "completed"}
 
+# --- Local Entrypoint ---
 @app.local_entrypoint()
-def main(config_file: str = "params.yaml"):
-    # Load hyperparameters or data paths
-    params = {"lr": 0.001} # Example
-    print(f"Starting remote training job for app: {app.name}")
-    result = train_model.remote(params)
-    print(f"Job finished with result: {result}")
+def main(data_source: str = "http://example.com/my_data.csv"):
+    print("Starting Modal task...")
+    # Ensure you are running this local entrypoint using your Python 3.11 env!
+    result = run_assignment_task.remote(data_source)
+    print(f"Modal task finished: {result}")
+
 ```
 
-## Configuration
-- Default package versions (TF, CUDA, NumPy, etc.) are set within `modal_tf_builder/builder.py`. These defaults are based on a known stable combination.
-- Use `--add-apt`, `--add-mamba`, and `--add-pip` (CLI) or the corresponding arguments in the `setup_modal_tf_gpu` function (Python) to add packages.
-- For `--add-mamba` (CLI) or `add_mamba_packages` (Python):
-- Use `package_name=version` to specify a version (e.g., `numpy=1.25.0`). This will override the default version if the package exists in the base list.
-- Use `package_name` to install the latest compatible version according to the specified channels.
+### Command Line Interface (CLI)
 
-## Python Version Matching (Crucial!)
-Modal serializes (pickles) Python objects to send data between your local machine and the remote container. This process can fail if the Python major.minor versions differ significantly (e.g., local 3.10 vs. remote 3.11).
-- Recommendation: Ensure the Python version in your local environment (where you run `modal run ...`) matches the `python_version` argument passed to `setup_modal_tf_gpu` (default is "3.11"). Patch versions (e.g., 3.11.8 vs 3.11.9) are usually compatible.
+You can also run the builder from the command line (primarily for testing the build process itself). Make sure your **Python 3.11 environment** (where the builder is installed) is active.
+
+```bash
+# Test the default Python 3.11 TF+GPU build and run verification
+python -m modal_tf_builder.builder --run-tests --verbose-tests
+
+# Test adding packages and run verification
+python -m modal_tf_builder.builder --add-pip "requests" --add_mamba "opencv" --run-tests
+```
+
+## Configuration Options
+
+When calling `setup_modal_tf_gpu` in Python or using the CLI:
+
+*   `app_name` (str): Name for the Modal App (default: "tf-gpu-app").
+*   `gpu_type` (str): GPU type for build and execution (e.g., "T4", "A10G", "H100", default: "T4").
+*   `add_apt_packages` (List[str]): Additional apt packages to install (CLI: `--add-apt pkg1 pkg2`).
+*   `add_mamba_packages` (Dict[str, Optional[str]]): Additional micromamba packages. Use `{"pkg": "version"}` or `{"pkg": None}` for latest compatible (CLI: `--add-mamba pkg1=1.2.3 pkg2`). These override defaults if the package name matches.
+*   `add_pip_packages` (List[str]): Additional pip packages (CLI: `--add-pip pkg1 pkg2`).
+*   `mamba_channels` (List[str]): Override default micromamba channels (CLI: `--mamba-channels channel1 channel2`).
+*   `run_tests` (bool): Run GPU verification tests after setup (CLI: `--run-tests`).
+*   `verbose_tests` (bool): Show verbose output during tests (CLI: `--verbose-tests`).
+*   `force_rebuild` (bool): Force Modal to rebuild image layers, ignoring cache (CLI: `--force-rebuild`).
 
 ## License
 
-Distributed under the MIT License. See LICENSE for more information.
+Distributed under the MIT License. See `LICENSE` for more information.

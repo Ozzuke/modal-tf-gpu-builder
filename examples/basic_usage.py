@@ -1,26 +1,13 @@
 # examples/basic_usage.py
 import modal
 import os
-
-# Assumes modal_tf_builder package is in the Python path
-# (e.g., running from the repo root)
-try:
-    from modal_tf_builder import setup_modal_tf_gpu
-except ImportError:
-    print("Error: Could not import setup_modal_tf_gpu.")
-    print("Ensure you are running this script from the root of the 'modal-tf-gpu-builder' repository,")
-    print("or that the 'modal_tf_builder' package is installed/accessible in your Python path.")
-    exit()
-
+from modal_tf_builder import setup_modal_tf_gpu
 
 # --- Configuration ---
-# Match your local Python major.minor version if possible!
-TARGET_PYTHON_VERSION = "3.11"
 GPU_TYPE = "T4" # Or "A10G", etc.
 
 builder_config = {
     "app_name": "basic-tf-example",
-    "python_version": TARGET_PYTHON_VERSION,
     "gpu_type": GPU_TYPE,
     # Add any extra packages needed specifically for this example
     # "add_pip": ["some_plotting_lib"],

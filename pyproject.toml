@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modal_tf_gpu_builder"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="Osvald Nigola" },
 ]
@@ -21,7 +21,10 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Framework :: Modal",
 ]
-# dependencies = []
+dependencies = [
+    "modal",
+    "tblib",
+]
 
 [project.urls]
 Homepage = "https://github.com/ozzuke/modal-tf-gpu-builder"

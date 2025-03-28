@@ -294,6 +294,9 @@ def setup_modal_tf_gpu(
         print("Adding PIP packages...")
         image = image.pip_install(*final_pip, force_build=force_rebuild)
 
+    print("Adding modal_tf_builder package source to image...")
+    image = image.add_local_python_source("modal_tf_builder")
+
     print("Image definition created.")
 
     # 3. Create the Modal App instance using the defined image
